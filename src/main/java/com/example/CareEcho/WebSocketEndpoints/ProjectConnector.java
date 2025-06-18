@@ -41,44 +41,49 @@ public class ProjectConnector {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2); // One for each connection
 
     public CombinedBook getTop5GroupedBooks() {
-        Map<Symbol, SymbolData> result = receivedBooks.stream()
-                .collect(Collectors.groupingBy(
-                        Book::symbol,
-                        Collectors.collectingAndThen(
-                                Collectors.toList(),
-                                (List<Book> books) -> {  //  Fix: explicitly declare type
-                                    // Group and aggregate BUY side
-                                    Map<Float, Integer> buyMap = books.stream()
-                                            .filter(book -> book.side() == Side.BUY)
-                                            .collect(Collectors.groupingBy(
-                                                    Book::price,
-                                                    Collectors.summingInt(Book::qty)
-                                            ));
-                                    List<OrderEntry> top5Buys = buyMap.entrySet().stream()
-                                            .map(e -> new OrderEntry(e.getKey(), e.getValue()))
-                                            .sorted(Comparator.comparing(OrderEntry::price).reversed())
-                                            .limit(5)
-                                            .toList();
+        List<SymbolData> symbolDataList = receivedBooks.stream()
+                .collect(Collectors.groupingBy(Book::symbol))
+                .entrySet()
+                .stream()
+                .map(entry -> {
+                    Symbol symbol = entry.getKey();
+                    List<Book> books = entry.getValue();
 
-                                    // Group and aggregate SELL side
-                                    Map<Float, Integer> sellMap = books.stream()
-                                            .filter(book -> book.side() == Side.SELL)
-                                            .collect(Collectors.groupingBy(
-                                                    Book::price,
-                                                    Collectors.summingInt(Book::qty)
-                                            ));
-                                    List<OrderEntry> top5Sells = sellMap.entrySet().stream()
-                                            .map(e -> new OrderEntry(e.getKey(), e.getValue()))
-                                            .sorted(Comparator.comparing(OrderEntry::price))
-                                            .limit(5)
-                                            .toList();
+                    // Aggregate BUY orders
+                    Map<Float, Integer> buyMap = books.stream()
+                            .filter(book -> book.side() == Side.BUY)
+                            .collect(Collectors.groupingBy(
+                                    Book::price,
+                                    Collectors.summingInt(Book::qty)
+                            ));
 
-                                    return new SymbolData(top5Sells, top5Buys);
-                                }
-                        )
-                ));
-        return new CombinedBook(result);
+                    List<OrderEntry> top5Buys = buyMap.entrySet().stream()
+                            .map(e -> new OrderEntry(e.getKey(), e.getValue()))
+                            .sorted(Comparator.comparing(OrderEntry::price).reversed())
+                            .limit(5)
+                            .toList();
+
+                    // Aggregate SELL orders
+                    Map<Float, Integer> sellMap = books.stream()
+                            .filter(book -> book.side() == Side.SELL)
+                            .collect(Collectors.groupingBy(
+                                    Book::price,
+                                    Collectors.summingInt(Book::qty)
+                            ));
+
+                    List<OrderEntry> top5Sells = sellMap.entrySet().stream()
+                            .map(e -> new OrderEntry(e.getKey(), e.getValue()))
+                            .sorted(Comparator.comparing(OrderEntry::price))
+                            .limit(5)
+                            .toList();
+
+                    return new SymbolData(symbol, top5Sells, top5Buys);
+                })
+                .toList();
+
+        return new CombinedBook(symbolDataList);
     }
+
 
 
 
@@ -145,13 +150,13 @@ public class ProjectConnector {
         }
 
         @Override
-        public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
+        public void afterConnected(@NonNull StompSession session,@NonNull  StompHeaders connectedHeaders) {
             currentSession.set(session); // Store the current session
             System.out.println("STOMP session established for " + url + ": " + session.getSessionId());
 
             session.subscribe("/topic/book", new StompFrameHandler() {
                 @Override
-                public Type getPayloadType(StompHeaders headers) {
+                public Type getPayloadType(@NonNull StompHeaders headers) {
                     return Book.class;
                 }
 
@@ -173,16 +178,16 @@ public class ProjectConnector {
         }
 
         @Override
-        public void handleException(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable exception) {
+        public void handleException(@NonNull StompSession session, StompCommand command,@NonNull  StompHeaders headers, @NonNull byte[] payload, Throwable exception) {
             System.err.println("Error in STOMP session for " + url + ": " + exception.getMessage());
             // This method handles exceptions occurring within the STOMP session itself
             // e.g., issues during message processing. It does not mean connection loss.
         }
 
         @Override
-        public void handleTransportError(StompSession session, Throwable exception) {
+        public void handleTransportError(@NonNull StompSession session, Throwable exception) {
             System.err.println("Transport error for " + url + ": " + exception.getMessage());
-            if (session != null && session.isConnected()) {
+            if (session.isConnected()) {
                 System.err.println("Session " + session.getSessionId() + " is still connected, but transport error occurred.");
             } else {
                 System.err.println("Connection lost for " + url + ". Attempting to reconnect...");
@@ -194,7 +199,7 @@ public class ProjectConnector {
         }
 
         @Override
-        public void handleFrame(StompHeaders headers, Object payload) {
+        public void handleFrame(@NonNull StompHeaders headers, Object payload) {
             // This method is primarily for handling UNKNOWN frame types or for general frame debugging.
             // For subscribed messages, handleFrame in StompFrameHandler is preferred.
         }

@@ -14,23 +14,16 @@ public class CareEchoService {
 
     @Autowired
     private SimpMessagingTemplate template;
-
     @Autowired
     ProjectConnector projectConnector;
 
     private final Random random = new Random();
-
-
     @Scheduled(fixedDelay = 1000)
     public void periodicallySendTop5() {
         CombinedBook current = projectConnector.getTop5GroupedBooks();
-//        CombinedBook previous = previousCombinedBook.get();
+        System.out.println(current);
+        template.convertAndSend("/topic/top5", current);
+//        simpMessagingTemplate.convertAndSend("/topic/book", combinedBookObject);
 
-//        if (!current.equals(previous)) {
-//            previousCombinedBook.set(current);
-            System.out.println(current);
-            template.convertAndSend("/topic/top5", current);
-
-//        }
     }
 }
