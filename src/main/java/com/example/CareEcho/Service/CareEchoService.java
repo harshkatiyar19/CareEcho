@@ -21,7 +21,7 @@ public class CareEchoService {
     @Scheduled(fixedDelay = 1000)
     public void periodicallySendTop5() {
         CombinedBook current = projectConnector.getTop5GroupedBooks();
-        System.out.println(current);
+//        System.out.println(current);
         template.convertAndSend("/topic/top5", current);
 //        simpMessagingTemplate.convertAndSend("/topic/book", combinedBookObject);
 
