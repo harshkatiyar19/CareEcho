@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Service
 public class ProjectConnector {
 
-    private static final int MAX_BOOKS_BUFFER = 1000;
+    private static final int MAX_BOOKS_BUFFER = 250;
     private final List<Book> receivedBooks = Collections.synchronizedList(new ArrayList<>());
     private final List<StompSession> activeSessions = new CopyOnWriteArrayList<>(); // To manage active sessions
 
@@ -273,8 +273,8 @@ public class ProjectConnector {
     @PostConstruct
     public void init() {
         // Attempt to connect immediately on startup
-        tryConnect("ws://localhost:8080/ws/nasdaq"); // nasdaq
-        tryConnect("ws://localhost:8081/ws/nyse"); // nyse
+        tryConnect("wss://exchange-nasdaq.onrender.com/ws/nasdaq"); // nasdaq
+        tryConnect("wss://exchange-nyse.onrender.com/ws/nyse"); // nyse
     }
 
     @PreDestroy
