@@ -2,7 +2,5 @@ package com.example.CareEcho.DTO.send;
 
 import java.util.List;
 
-public record CombinedBook(
-       List<SymbolData> data
-) {
+public record OrderData(List<SymbolData2> data) {
 }

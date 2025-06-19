@@ -3,9 +3,7 @@ package com.example.CareEcho.WebSocketEndpoints;
 import com.example.CareEcho.DTO.recieved.Book;
 import com.example.CareEcho.DTO.recieved.Side;
 import com.example.CareEcho.DTO.recieved.Symbol;
-import com.example.CareEcho.DTO.send.CombinedBook;
-import com.example.CareEcho.DTO.send.OrderEntry;
-import com.example.CareEcho.DTO.send.SymbolData;
+import com.example.CareEcho.DTO.send.*;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.lang.NonNull;
@@ -39,6 +37,70 @@ public class ProjectConnector {
 
     // Use a scheduled executor for reconnection attempts
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2); // One for each connection
+
+
+    public void sendToExchange(Book book) {
+        for (StompSession session : activeSessions) {
+            if (session.isConnected()) {
+                String destination = null;
+                try {
+                    switch (book.exchange()) {
+                        case "NYSE" -> destination = "/app/nyse/sendOrder";
+                        case "NASDAQ" -> destination = "/app/nasdaq/sendOrder";
+                    }
+                    assert destination != null;
+                    session.send(destination, book); // Project A should map this
+                    System.out.println("Forwarded book to " + destination + " : " + book);
+                } catch (Exception e) {
+                    System.err.println("Failed to send to " + destination + " : " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    public OrderData allOrders() {
+        List<SymbolData2> symbolDataList = receivedBooks.stream()
+                .collect(Collectors.groupingBy(Book::symbol))
+                .entrySet()
+                .stream()
+                .map(entry -> {
+                    Symbol symbol = entry.getKey();
+                    List<Book> books = entry.getValue();
+
+                    // Aggregate BUY orders
+                    Map<Float, Integer> buyMap = books.stream()
+                            .filter(book -> book.side() == Side.BUY)
+                            .collect(Collectors.groupingBy(
+                                    Book::price,
+                                    Collectors.summingInt(Book::qty)
+                            ));
+
+//                    List<OrderEntry> top5Buys = buyMap.entrySet().stream()
+//                            .map(e -> new OrderEntry(e.getKey(), e.getValue()))
+//                            .sorted(Comparator.comparing(OrderEntry::price).reversed())
+//                            .limit(5)
+//                            .toList();
+
+                    // Aggregate SELL orders
+                    Map<Float, Integer> sellMap = books.stream()
+                            .filter(book -> book.side() == Side.SELL)
+                            .collect(Collectors.groupingBy(
+                                    Book::price,
+                                    Collectors.summingInt(Book::qty)
+                            ));
+
+//                    List<OrderEntry> top5Sells = sellMap.entrySet().stream()
+//                            .map(e -> new OrderEntry(e.getKey(), e.getValue()))
+//                            .sorted(Comparator.comparing(OrderEntry::price))
+//                            .limit(5)
+//                            .toList();
+
+                    return new SymbolData2(symbol, sellMap, buyMap);
+                })
+                .toList();
+
+        return new OrderData(symbolDataList);
+    }
 
     public CombinedBook getTop5GroupedBooks() {
         List<SymbolData> symbolDataList = receivedBooks.stream()
@@ -84,16 +146,11 @@ public class ProjectConnector {
         return new CombinedBook(symbolDataList);
     }
 
-
-
-
-
-
     @PostConstruct
     public void init() {
         // Attempt to connect immediately on startup
-        tryConnect("ws://localhost:8080/ws/book"); // nasdaq
-        tryConnect("ws://localhost:8081/ws/book"); // nyse
+        tryConnect("ws://localhost:8080/ws/nasdaq"); // nasdaq
+        tryConnect("ws://localhost:8081/ws/nyse"); // nyse
     }
 
     @PreDestroy
@@ -110,12 +167,11 @@ public class ProjectConnector {
         System.out.println("ProjectConnector shutdown complete.");
     }
 
-
     private void tryConnect(String url) {
         WebSocketStompClient stompClient = createStompClient();
 
         System.out.println("Attempting to connect to: " + url);
-        // *** CHANGE HERE: Use connectAsync() instead of connect() ***
+
         CompletableFuture<StompSession> connectFuture = stompClient.connectAsync(url, new StompSessionHandler(url));
 
         connectFuture.handle((session, ex) -> {
@@ -154,28 +210,34 @@ public class ProjectConnector {
             currentSession.set(session); // Store the current session
             System.out.println("STOMP session established for " + url + ": " + session.getSessionId());
 
-            session.subscribe("/topic/book", new StompFrameHandler() {
-                @Override
-                public Type getPayloadType(@NonNull StompHeaders headers) {
-                    return Book.class;
-                }
-
-                @Override
-                public void handleFrame(@NonNull StompHeaders headers, Object payload) {
-                    Book book = (Book) payload;
-
-                    synchronized (receivedBooks) {
-                        receivedBooks.add(book);
-                        if (receivedBooks.size() > MAX_BOOKS_BUFFER) {
-                            // Remove the oldest element to keep size in check (sliding window)
-                            receivedBooks.removeFirst();
-                        }
-                    }
-
-                    System.out.println("Received from " + url + ": " + book);
-                }
-            });
+            session.subscribe("/topic/order", new BookFrameHandler(url));
         }
+
+        private class BookFrameHandler implements StompFrameHandler {
+            private final String source;
+
+            public BookFrameHandler(String source) {
+                this.source = source;
+            }
+
+            @Override
+            public Type getPayloadType(@NonNull StompHeaders headers) {
+                return Book.class;
+            }
+
+            @Override
+            public void handleFrame(@NonNull StompHeaders headers, Object payload) {
+                Book book = (Book) payload;
+                synchronized (receivedBooks) {
+                    receivedBooks.add(book);
+                    if (receivedBooks.size() > MAX_BOOKS_BUFFER) {
+                        receivedBooks.removeFirst();
+                    }
+                }
+                System.out.println("Received from " + source + ": " + book);
+            }
+        }
+
 
         @Override
         public void handleException(@NonNull StompSession session, StompCommand command,@NonNull  StompHeaders headers, @NonNull byte[] payload, Throwable exception) {

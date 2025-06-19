@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum Symbol {
-    APPL(1),GOOGL(2),MSFT(3),AMZN(4),TSLA(5),META(6),NVDA(7);
+    AAPL(1),GOOGL(2),MSFT(3),AMZN(4),TSLA(5),META(6),NVDA(7);
 
     private final int code;
 
