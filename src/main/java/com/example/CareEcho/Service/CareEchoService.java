@@ -27,7 +27,8 @@ public class CareEchoService {
 
     @Scheduled(fixedDelay = 200)
     public void orders() {
-        OrderData order = projectConnector.allOrders();
+//        OrderData order = projectConnector.allOrders();
+        OrderData order = projectConnector.allOrdersWithCumulativeDepth();
 //        System.out.println(current);
         template.convertAndSend("/topic/orders", order);
 //        simpMessagingTemplate.convertAndSend("/topic/book", combinedBookObject);
