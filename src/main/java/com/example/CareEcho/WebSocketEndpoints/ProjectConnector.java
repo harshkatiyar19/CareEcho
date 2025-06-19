@@ -85,28 +85,6 @@ public class ProjectConnector {
                                     Collectors.summingInt(Book::remainingQty) // Use remainingQty
                             ));
 
-                    // Optional: Sort and limit to top levels for better performance
-                    // You can uncomment this if you want to limit the depth levels sent to frontend
-
-                    // Map<Float, Integer> topBuys = buyMap.entrySet().stream()
-                    //         .sorted(Map.Entry.<Float, Integer>comparingByKey().reversed()) // Highest price first
-                    //         .limit(20) // Top 20 price levels
-                    //         .collect(Collectors.toMap(
-                    //                 Map.Entry::getKey,
-                    //                 Map.Entry::getValue,
-                    //                 (e1, e2) -> e1,
-                    //                 LinkedHashMap::new
-                    //         ));
-
-                    // Map<Float, Integer> topSells = sellMap.entrySet().stream()
-                    //         .sorted(Map.Entry.comparingByKey()) // Lowest price first
-                    //         .limit(20) // Top 20 price levels
-                    //         .collect(Collectors.toMap(
-                    //                 Map.Entry::getKey,
-                    //                 Map.Entry::getValue,
-                    //                 (e1, e2) -> e1,
-                    //                 LinkedHashMap::new
-                    //         ));
 
                     return new SymbolData2(symbol, sellMap, buyMap);
                     // return new SymbolData2(symbol, topSells, topBuys); // Use this if limiting levels
@@ -161,11 +139,6 @@ public class ProjectConnector {
                         cumulativeSellMap.put(price, sellDepth.get());
                     });
 
-//                    if (!cumulativeBuyMap.isEmpty() && !cumulativeSellMap.isEmpty()) {
-//                        Float highestBid = cumulativeBuyMap.keySet().iterator().next();
-//                        Float lowestAsk = cumulativeSellMap.keySet().iterator().next();
-////                        System.out.printf("Symbol: %s | Best Bid: %.2f | Best Ask: %.2f%n", symbol, highestBid, lowestAsk);
-//                    }
 
                     return new SymbolData2(symbol, cumulativeSellMap, cumulativeBuyMap);
                 })
@@ -178,54 +151,6 @@ public class ProjectConnector {
         return Math.round(price / tickSize) * tickSize;
     }
 
-
-    /// -----///
-
-//    public OrderData allOrders() {
-//        List<SymbolData2> symbolDataList = receivedBooks.stream()
-//                .collect(Collectors.groupingBy(Book::symbol))
-//                .entrySet()
-//                .stream()
-//                .map(entry -> {
-//                    Symbol symbol = entry.getKey();
-//                    List<Book> books = entry.getValue();
-//
-//                    // Aggregate BUY orders
-//                    Map<Float, Integer> buyMap = books.stream()
-//                            .filter(book -> book.side() == Side.BUY)
-//                            .collect(Collectors.groupingBy(
-//                                    Book::price,
-//                                    Collectors.summingInt(Book::qty)
-//                            ));
-//
-////                    List<OrderEntry> top5Buys = buyMap.entrySet().stream()
-////                            .map(e -> new OrderEntry(e.getKey(), e.getValue()))
-////                            .sorted(Comparator.comparing(OrderEntry::price).reversed())
-////                            .limit(5)
-////                            .toList();
-//
-//                    // Aggregate SELL orders
-//                    Map<Float, Integer> sellMap = books.stream()
-//                            .filter(book -> book.side() == Side.SELL)
-//                            .collect(Collectors.groupingBy(
-//                                    Book::price,
-//                                    Collectors.summingInt(Book::qty)
-//                            ));
-//
-////                    List<OrderEntry> top5Sells = sellMap.entrySet().stream()
-////                            .map(e -> new OrderEntry(e.getKey(), e.getValue()))
-////                            .sorted(Comparator.comparing(OrderEntry::price))
-////                            .limit(5)
-////                            .toList();
-//
-//                    return new SymbolData2(symbol, sellMap, buyMap);
-//                })
-//                .toList();
-//
-//        return new OrderData(symbolDataList);
-//    }
-
-/// -----///
     public CombinedBook getTop5GroupedBooks() {
         List<SymbolData> symbolDataList = receivedBooks.stream()
                 .collect(Collectors.groupingBy(Book::symbol))
@@ -358,7 +283,6 @@ public class ProjectConnector {
                         receivedBooks.removeFirst();
                     }
                 }
-                System.out.println("Received from " + source + ": " + book);
             }
         }
 
