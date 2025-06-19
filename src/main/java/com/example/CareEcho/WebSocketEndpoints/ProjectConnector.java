@@ -280,7 +280,7 @@ public class ProjectConnector {
                 synchronized (receivedBooks) {
                     receivedBooks.add(book);
                     if (receivedBooks.size() > MAX_BOOKS_BUFFER) {
-                        receivedBooks.removeFirst();
+                        receivedBooks.remove(0);
                     }
                 }
             }
