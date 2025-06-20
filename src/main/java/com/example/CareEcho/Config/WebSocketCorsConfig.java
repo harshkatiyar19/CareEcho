@@ -9,6 +9,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebSocketCorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**").allowedOrigins("https://one-big-exchange-user.onrender.com").allowedMethods("*");
+        registry.addMapping("/**").allowedOrigins("*").allowedMethods("*");
     }
 }
