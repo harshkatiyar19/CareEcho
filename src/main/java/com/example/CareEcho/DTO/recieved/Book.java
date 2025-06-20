@@ -18,3 +18,24 @@ public record Book(
         //int userId,
 
 ) {}
+
+
+//public enum OrderStatus {
+//    New,
+//    Partially,
+//    Filled,
+//    Cancelled;}
+//
+//public enum OrderType {
+//    Limit,Market,StopLoss,StopLimit,TrailingStop,FOK,IOC,AON;}
+//public enum OrderValidity {
+//    Day,
+//    GTC,
+//    IOC,
+//    FOK,
+//    GTD;}
+//
+//public enum Side {
+//    BUY,SELL;}
+//public enum Symbol {
+//    AAPL,GOOGL,MSFT,AMZN,TSLA,META,NVDA;}
