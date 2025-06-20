@@ -198,8 +198,8 @@ public class ProjectConnector {
     @PostConstruct
     public void init() {
         // Attempt to connect immediately on startup
-        tryConnect("wss://exchange-nasdaq.onrender.com/ws/nasdaq"); // nasdaq
-        tryConnect("wss://exchange-nyse.onrender.com/ws/nyse"); // nyse
+        tryConnect("ws://exchange-nasdaq.onrender.com/ws/nasdaq"); // nasdaq
+        tryConnect("ws://exchange-nyse.onrender.com/ws/nyse"); // nyse
     }
 
     @PreDestroy
